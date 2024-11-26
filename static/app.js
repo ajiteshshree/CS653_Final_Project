@@ -7,8 +7,8 @@ document.getElementById('joinBtn').addEventListener('click', function() {
         return;
     }
 
-    const ws = new WebSocket(`ws://${window.location.host}/`);
-    //const ws = new WebSocket("ws://192.168.1.100:8080/");
+    // const ws = new WebSocket(`ws://${window.location.host}/`);
+    const ws = new WebSocket("ws://172.23.69.13:8080/");  //Wireless LAN adapter Wi-Fi: iPv4 address
 
     ws.onopen = function() {
         // Send a join message
