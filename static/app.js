@@ -1,3 +1,5 @@
+let ws = null; // Declare ws globally to reuse it
+
 document.getElementById('joinBtn').addEventListener('click', function() {
     const username = document.getElementById('username').value.trim();
     const room = document.getElementById('room').value.trim();
@@ -8,7 +10,13 @@ document.getElementById('joinBtn').addEventListener('click', function() {
     }
 
     // const ws = new WebSocket(`ws://${window.location.host}/`);
-    const ws = new WebSocket("ws://172.23.69.13:8080/");  //Wireless LAN adapter Wi-Fi: iPv4 address
+    // const ws = new WebSocket("ws://172.23.69.13:8080/");  //Wireless LAN adapter Wi-Fi: iPv4 address
+    if (ws) {
+        ws.close(); // Close the previous WebSocket connection
+    }
+    ws = new WebSocket("ws://172.23.69.13:8080/"); // Create a new connection
+    ws.onmessage = null; // Clear any old message handlers
+    ws.onclose = null;   // Clear any old close handlers   
 
     ws.onopen = function() {
         // Send a join message
@@ -40,24 +48,25 @@ document.getElementById('joinBtn').addEventListener('click', function() {
         try {
             const data = JSON.parse(event.data);
 
+            // Handle userList messages
             if (data.type === "userList") {
                 const userList = data.users;
                 const count = data.count;
-    
+
                 // Update the user list UI
                 const userListContainer = document.getElementById('user-list');
                 userListContainer.innerHTML = ""; // Clear the list
-                userList.forEach(user => {
+                userList.forEach((user) => {
                     const userElement = document.createElement('p');
                     userElement.textContent = user;
                     userListContainer.appendChild(userElement);
                 });
-    
+
                 // Update the total count
                 document.getElementById('user-count').textContent = `Total users: ${count}`;
             }
 
-            if (data.serverUser && data.serverMessage) {
+            else if (data.serverUser && data.serverMessage) {
                 const messageElement = document.createElement('p');
                 messageElement.textContent = `${data.serverUser}: ${data.serverMessage}`;
 
