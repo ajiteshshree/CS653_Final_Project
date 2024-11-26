@@ -53,13 +53,14 @@ document.getElementById('joinBtn').addEventListener('click', function() {
                 const userList = data.users;
                 const count = data.count;
 
-                // Update the user list UI
-                const userListContainer = document.getElementById('user-list');
-                userListContainer.innerHTML = ""; // Clear the list
+                // Populate the user dropdown with user names
+                const userDropdown = document.getElementById('user-dropdown');
+                userDropdown.innerHTML = ""; // Clear existing names
                 userList.forEach((user) => {
-                    const userElement = document.createElement('p');
-                    userElement.textContent = user;
-                    userListContainer.appendChild(userElement);
+                    const option = document.createElement('option');
+                    option.textContent = user;
+                    option.value = user;
+                    userDropdown.appendChild(option);
                 });
 
                 // Update the total count
@@ -74,7 +75,7 @@ document.getElementById('joinBtn').addEventListener('click', function() {
                 if (chatContainer) {
                     // Append the message if the container exists
                     chatContainer.appendChild(messageElement);
-
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
                     // Process any queued messages
                     while (messageQueue.length > 0) {
                         const queuedMessage = messageQueue.shift();
