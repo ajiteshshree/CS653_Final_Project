@@ -13,10 +13,15 @@
     </div>
     <div id="chat" style="display: none;">
         <h3>Chat Room: <span id="roomName"></span></h3>
-        <!-- The chat container will either be pre-defined or dynamically added -->
+        <div id="user-list-container">
+            <h4>Users in Room:</h4>
+            <div id="user-list"></div>
+            <p id="user-count"></p>
+        </div>
         <div id="chat-container"></div>
         <input type="text" id="messageInput" placeholder="Enter message">
         <button id="sendBtn">Send</button>
+        <button id="leaveBtn">Leave</button> 
     </div>
     <script src="app.js"></script>
 </body>

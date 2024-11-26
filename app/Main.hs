@@ -4,13 +4,15 @@
 
 module Main where
 
+import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM 
     ( TVar, atomically, newTVar, newTVarIO, readTVar, readTVarIO, modifyTVar', writeTVar )
 import Control.Exception (finally)
 import Control.Monad (forM_, forever, when)
 import Data.Aeson
-    ( FromJSON, ToJSON, decode, encode, object, parseJSON, withObject, (.:) )--(.:?)
+    ( FromJSON, ToJSON, decode, encode, object, parseJSON, withObject, (.:), (.=) )--(.:?)
 import Data.Aeson.Types (Parser)
+-- import Data.Aeson ((.=), encode, object)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -43,7 +45,7 @@ instance FromJSON ClientMessage where
 
 data ServerMessage = ServerMessage
     { serverUser :: Text
-    , serverMessage :: Text
+    , serverMessage :: Text 
     } deriving (Show, Generic)
 
 instance ToJSON ServerMessage
@@ -89,11 +91,20 @@ isWebSocketRequest req =
         Just _ -> True
         Nothing -> False
 
+-- Periodically send pings to keep the connection alive
+pingClients :: Connection -> IO ()
+pingClients conn = forever $ do
+    sendPing conn ("ping" :: Text)
+    threadDelay (30 * 10^6) -- Ping every 30 seconds
+
 wsApp :: ServerState -> ServerApp
 wsApp state pendingConn = do
     conn <- acceptRequest pendingConn
+    -- Start a thread to send periodic pings
+    _ <- forkIO $ pingClients conn
     -- Handle the connection
     talk conn state
+
 
 -- Function to handle communication with a client
 talk :: Connection -> ServerState -> IO ()
@@ -111,30 +122,40 @@ talk conn state = flip finally disconnect $ do
 
 -- Join a room
 joinRoom :: Connection -> ServerState -> RoomName -> Text -> IO ()
-joinRoom conn ServerState{..} roomName userName = atomically $ do
-    roomsMap <- readTVar rooms
-    roomVar <- case Map.lookup roomName roomsMap of
-        Just rv -> return rv
-        Nothing -> do
-            rv <- newTVar Map.empty
-            modifyTVar' rooms (Map.insert roomName rv)
-            return rv
-    clientsMap <- readTVar roomVar
-    let clientId = userName -- Ensure uniqueness in practice
-    writeTVar roomVar (Map.insert clientId conn clientsMap)
+joinRoom conn ServerState{..} roomName userName = do
+    roomVar <- atomically $ do
+        roomsMap <- readTVar rooms
+        case Map.lookup roomName roomsMap of
+            Just rv -> return rv
+            Nothing -> do
+                rv <- newTVar Map.empty
+                modifyTVar' rooms (Map.insert roomName rv)
+                return rv
+    atomically $ do
+        clientsMap <- readTVar roomVar
+        let clientId = userName -- Ensure uniqueness in practice
+        writeTVar roomVar (Map.insert clientId conn clientsMap)
+    -- Broadcast user list after updating the room
+    broadcastUserList roomName roomVar
+
 
 -- Leave a room
 leaveRoom :: Connection -> ServerState -> RoomName -> Text -> IO ()
-leaveRoom conn ServerState{..} roomName userName = atomically $ do
-    roomsMap <- readTVar rooms
-    case Map.lookup roomName roomsMap of
-        Just roomVar -> do
-            clientsMap <- readTVar roomVar
-            let updatedClients = Map.delete userName clientsMap
-            writeTVar roomVar updatedClients
-            -- Optionally, remove the room if empty
-            when (Map.null updatedClients) $
-                modifyTVar' rooms (Map.delete roomName)
+leaveRoom conn ServerState{..} roomName userName = do
+    mRoomVar <- atomically $ do
+        roomsMap <- readTVar rooms
+        case Map.lookup roomName roomsMap of
+            Just roomVar -> do
+                clientsMap <- readTVar roomVar
+                let updatedClients = Map.delete userName clientsMap
+                writeTVar roomVar updatedClients
+                when (Map.null updatedClients) $
+                    modifyTVar' rooms (Map.delete roomName)
+                return $ Just roomVar
+            Nothing -> return Nothing
+    -- Broadcast user list if room still exists
+    case mRoomVar of
+        Just roomVar -> broadcastUserList roomName roomVar
         Nothing -> return ()
 
 -- Send a message to a room
@@ -149,3 +170,17 @@ sendMessage conn ServerState{..} roomName userName message = do
             forM_ (Map.elems clientsMap) $ \clientConn -> do
                 sendTextData clientConn (BL.toStrict broadcastMsg)
         Nothing -> sendTextData conn ("Room does not exist" :: Text)
+
+broadcastUserList :: RoomName -> TVar (Map.Map ClientId Client) -> IO ()
+broadcastUserList roomName roomVar = do
+    clientsMap <- readTVarIO roomVar
+    let userList = Map.keys clientsMap -- Get all user IDs (usernames)
+    let userListMessage = encode $ object
+            [ "type" .= ("userList" :: Text)
+            , "room" .= roomName
+            , "users" .= userList
+            , "count" .= length userList
+            ]
+    forM_ (Map.elems clientsMap) $ \clientConn ->
+        sendTextData clientConn (BL.toStrict userListMessage)
+

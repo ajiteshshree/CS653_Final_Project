@@ -40,6 +40,23 @@ document.getElementById('joinBtn').addEventListener('click', function() {
         try {
             const data = JSON.parse(event.data);
 
+            if (data.type === "userList") {
+                const userList = data.users;
+                const count = data.count;
+    
+                // Update the user list UI
+                const userListContainer = document.getElementById('user-list');
+                userListContainer.innerHTML = ""; // Clear the list
+                userList.forEach(user => {
+                    const userElement = document.createElement('p');
+                    userElement.textContent = user;
+                    userListContainer.appendChild(userElement);
+                });
+    
+                // Update the total count
+                document.getElementById('user-count').textContent = `Total users: ${count}`;
+            }
+
             if (data.serverUser && data.serverMessage) {
                 const messageElement = document.createElement('p');
                 messageElement.textContent = `${data.serverUser}: ${data.serverMessage}`;
@@ -84,5 +101,22 @@ document.getElementById('joinBtn').addEventListener('click', function() {
         };
         ws.send(JSON.stringify(chatMsg));
         document.getElementById('messageInput').value = "";
+    });
+
+    // Leave button functionality
+    document.getElementById('leaveBtn').addEventListener('click', function () {
+        const leaveMsg = {
+            type: "leave",
+            room: room,
+            user: username,
+        };
+        ws.send(JSON.stringify(leaveMsg)); // Inform the server
+
+        // Reset the UI
+        document.getElementById('login').style.display = 'block';
+        document.getElementById('chat').style.display = 'none';
+
+        // Close the WebSocket connection
+        ws.close();
     });
 });
