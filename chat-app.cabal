@@ -1,0 +1,32 @@
+cabal-version:      3.0
+name:               chat-app
+version:            0.1.0.0
+synopsis:           chat application
+license:            BSD-2-Clause
+license-file:       LICENSE
+author:             ajiteshshree
+maintainer:         ajitesh2021@gmail.com
+build-type:         Simple
+-- extra-doc-files:    CHANGELOG.md
+
+common warnings
+    ghc-options: -Wall
+
+executable chat-app
+    import:           warnings
+    main-is:          Main.hs
+    build-depends:
+        base ^>=4.19.1.0,
+        http-types >=0.12.4,
+        warp,
+        wai,
+        wai-app-static >=3.0 && <4.0,
+        wai-websockets,
+        websockets,
+        stm,
+        aeson,
+        text,
+        bytestring,
+        containers
+    hs-source-dirs:   app
+    default-language: Haskell2010

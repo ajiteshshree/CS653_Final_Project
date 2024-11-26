@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Haskell Chat App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="login">
+        <input type="text" id="username" placeholder="Enter username">
+        <input type="text" id="room" placeholder="Enter room">
+        <button id="joinBtn">Join</button>
+    </div>
+    <div id="chat" style="display: none;">
+        <h3>Chat Room: <span id="roomName"></span></h3>
+        <!-- The chat container will either be pre-defined or dynamically added -->
+        <div id="chat-container"></div>
+        <input type="text" id="messageInput" placeholder="Enter message">
+        <button id="sendBtn">Send</button>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
