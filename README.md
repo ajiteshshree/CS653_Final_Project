@@ -72,6 +72,7 @@
 <ul>
     <li>GHC (Glasgow Haskell Compiler)</li>
     <li>Cabal (Build system)</li>
+    <li>Firewall overlook at port 8080 allowing traffic. (check Firewall setting) </li>
 </ul>
 
 <h3>Client</h3>
